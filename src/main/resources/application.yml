@@ -1,0 +1,24 @@
+server:
+  port: 8080
+spring:
+  messages:
+    encoding: UTF-8
+  # Templates path html
+  mvc:
+    view:
+      prefix: /templates/
+      suffix: .html
+
+  # Templates reloading during development
+  thymeleaf:
+    mode: HTML
+    encoding: UTF-8
+    prefix: file:src/main/resources/templates/
+    cache: false
+
+  # Static resources reloading during development
+  resources:
+    static-locations: file:src/main/resources/static/
+  profiles:
+    active: dev
+---

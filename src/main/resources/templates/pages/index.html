@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="th" xmlns:th="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="Description" content="game">
+        <title>Game</title>
+
+        <link rel="stylesheet preload prefetch" href="https://fonts.googleapis.com/css?family=Bai+Jamjuree&amp;display=swap" as="style">
+        <link rel="stylesheet" type="text/css" th:href="@{/webjars/bootstrap/5.0.0/css/bootstrap.min.css}"/>
+
+        <script th:inline="javascript">
+            window.onload = ()=>{
+                gameClz.running();
+            };
+
+            const gameClz = {
+                defaultX:469,
+                defaultY:220,
+                score:0,
+                /* =====================================
+                 * ========= Load image class ==========
+                 * ===================================== */
+                images:(map)=>{
+                    return new Promise((resolve,reject)=>{
+                        const image = new Image();
+                        image.onload = ()=> {
+                            map.images = image;
+                            resolve(map);
+                        };
+                        image.onerror = ()=>{
+                            reject();
+                        };
+                        image.src = (map.path||'?');
+                    });
+                },
+                /* =====================================
+                 * ============ Audio class ============
+                 * ===================================== */
+                audio:(sound)=>{
+                    if(this.sound != sound){
+                        let audioDoc = document.querySelector('audio.sound-clz');
+                        audioDoc.setAttribute('src',this.sound = sound||this.sound);
+                        audioDoc.volume = 0.3;
+                        audioDoc.play();
+                    }
+                },
+                /* =====================================
+                 * ============== Render ===============
+                 * ===================================== */
+                render:(clz,action,positionX,positionY)=>{
+                    const promise = clz.data.map(o=>gameClz.images(o));
+                    Promise.all(promise).then($promise=>{
+                        clz.context().clearRect(0,0,clz.context().canvas.width,clz.context().canvas.height);
+                        $promise.forEach($res=>{
+                            $res.source.forEach($source=>{
+                                let $motion = $source[action]||($source.motion||[]);
+                                if(++$source.motionIndex > $motion.length){
+                                    $source.motionIndex = 1;
+                                }
+                                $motion = $motion[$source.motionIndex -1];
+
+                                if(($source.mode||'none') == 'auto'){
+                                    if($source.destX <= -50){
+                                        $source.destX = gameClz.mapClz.data[Math.floor(Math.random() * 2)].areaXEnd;
+                                    }else{
+                                        $source.destX -= 5;
+                                    }
+                                }
+                                clz.context().drawImage($res.images,$motion.sx,$motion.sy,$motion.sw,$motion.sh,$source.destX+positionX,$source.destY+positionY,$motion.width,$motion.height);
+                            });
+                        });
+                    });
+                    return clz;
+                },
+                /* =====================================
+                 * ============ Start game =============
+                 * ===================================== */
+                running:()=>{
+                    setInterval(()=>{
+                        gameClz.mapClz.controller((e)=>{
+                            let poiDoc = document.querySelector('div.text-map-position');
+                            const txt  = 'X('+(e.positionX+gameClz.characterClz.positionX+gameClz.defaultX)+') , Y('+gameClz.characterClz.positionY+')';
+                            if(poiDoc.textContent != txt){
+                                poiDoc.innerHTML = txt;
+                            }
+                            gameClz.audio(e.map().sound);
+                        }).process();
+
+                        gameClz.obstructionClz.process();
+
+                        gameClz.monsterClz.controller().process();
+
+                        gameClz.itemClz.controller(()=>{
+                            document.querySelector('span.score-clz').innerHTML = ++gameClz.score;
+                        }).process();
+
+                        gameClz.characterClz.controller().process();
+                    },1000 / 35);
+
+                    gameClz.itemClz.random();
+                    gameClz.joystickClz.event((message)=>{
+                        /* ========== Text ========== */
+                        document.querySelector('div.text-key').innerHTML = message||'?';
+                    });
+                    return this;
+                },
+                /* ====================================
+                 * ========== Joystick class ==========
+                 * ==================================== */
+                joystickClz:{
+                    event:(callback)=>{
+                        let that = gameClz.joystickClz;
+                        that.flag = false;
+                        that.none = 'none';
+                        document.querySelector('body').addEventListener('keydown',(e)=>{
+                            that.message(e.key,(msg)=>{
+                                if(that.actions.filter(e=>e == msg).length == 0){
+                                    that.actions.push(msg);
+                                    callback.call(this,msg);
+                                }
+                            });
+                        });
+                        document.querySelector('body').addEventListener('keyup',(e)=>{
+                            that.message(e.key,(msg)=>{
+                                const index = that.actions.indexOf(msg);
+                                if (index !== -1) {
+                                    that.actions.splice(index,1);
+                                    callback.call(this,that.actions.slice(-1)[0]||'none');
+                                }
+                            });
+                        });
+                    },
+                    message:(key,callback)=>{
+                        switch(key){
+                            case 'a': case 'A': case 'ArrowLeft' :
+                                callback.call(this,'left');
+                                break;
+                            case 'd': case 'D': case 'ArrowRight':
+                                callback.call(this,'right');
+                                break;
+                            case ' ':
+                                callback.call(this,'jump');
+                                break;
+                        }
+                    },
+                    actions:[]
+                },
+                /* ===============================
+                 * ========== Map class ==========
+                 * =============================== */
+                mapClz:{
+                    context:()=>{return document.querySelector('canvas[id=map-clz]').getContext('2d');},
+                    positionX:0,
+                    positionY:0,
+                    data:[[${maps}]],
+                    map:()=>{
+                        const that = gameClz.mapClz;
+                        return gameClz.mapClz.data.filter(e=> (that.positionX+gameClz.defaultX) >= e.areaXStart && (that.positionX+gameClz.defaultX) <= e.areaXEnd).slice(-1)[0]||{};
+                    },
+                    areaMinX:()=>Math.min.apply(Math, gameClz.mapClz.data.map(function(o) { return o.areaXStart;})),
+                    areaMaxX:()=>Math.max.apply(Math, gameClz.mapClz.data.map(function(o) { return o.areaXStart;})),
+                    controller:(callback)=>{
+                        let that = gameClz.mapClz;
+                        /* ========== Position ========== */
+                        that.positionXTemp = that.positionX;
+                        let characterPositionX = gameClz.characterClz.positionX;
+                        let characterPositionY = gameClz.characterClz.positionY;
+
+                        /* ========== Action ========== */
+                        that.actionMove = gameClz.joystickClz.actions.filter(e=>e !='jump').slice(-1)[0]||'none';
+                        if(that.actionMove == 'left' && that.positionXTemp > 0 && characterPositionX == 0){
+                            that.positionXTemp -= 7;
+                        }
+                        if(that.actionMove == 'right' && that.positionXTemp < that.areaMaxX() && characterPositionX == 0){
+                            that.positionXTemp += 7;
+                        }
+
+                        /* ========== Validate block ========== */
+                        that.monster = (gameClz.monsterClz.monster||{});
+                        that.blockX = (that.monster.index||0) != 0;
+                        that.blockY = (characterPositionY >= that.monster.areaYStart && characterPositionY <= that.monster.areaYEnd);
+                        if(characterPositionX == 0 && (!that.blockX||!that.blockY) || characterPositionY == that.monster.areaYEnd){
+                            that.positionX = that.positionXTemp;
+                        }
+
+                        /* ========== Validate limit ========== */
+                        if(that.positionX > that.areaMaxX()){
+                            that.positionX = that.areaMaxX();
+                        }
+                        if(that.positionX < that.areaMinX()){
+                            that.positionX = that.areaMinX();
+                        }
+                        callback.call(this,that);
+
+                        return that;
+                    },
+                    process:()=>{
+                        const that = gameClz.mapClz;
+                        return gameClz.render(that,null,that.positionX*(-1),0);
+                    }
+                },
+                /* =====================================
+                 * ========== Character class ==========
+                 * ===================================== */
+                characterClz:{
+                    context:()=>{return document.querySelector('canvas[id=character-clz]').getContext('2d');},
+                    positionX:0,
+                    positionY:0,
+                    data:[[${character}]],
+                    controller:()=>{
+                        let that = gameClz.characterClz;
+                        /* ========== Position ========== */
+                        let mapPositionX  = (gameClz.mapClz.positionX||0);
+                        that.positionXTemp = that.positionX;
+                        that.positionYTemp = that.positionY;
+
+                        /* ========== Action ========== */
+                        that.actionMove = gameClz.joystickClz.actions.filter(e=>e !='jump').slice(-1)[0]||'none';
+                        that.actionJump = gameClz.joystickClz.actions.filter(e=>e =='jump').slice(-1)[0]||'none';
+
+                        if(that.actionMove == 'left'){
+                            if((mapPositionX == 0 && (that.positionXTemp + gameClz.defaultX) > 0)
+                            || (mapPositionX == gameClz.mapClz.areaMaxX() && that.positionXTemp > 0)){
+                                that.positionXTemp -= 7;
+                            }
+                        }
+
+                        if(that.actionMove == 'right'){
+                            if((mapPositionX == gameClz.mapClz.areaMaxX() && that.positionXTemp < gameClz.defaultX)
+                            || that.positionXTemp < 0) {
+                                that.positionXTemp += 7;
+                            }
+                        }
+                        /* ========== Jump on normal ========== */
+                        this.isJump = (this.isJump||false);
+                        if(that.actionJump == 'jump' && that.positionYTemp == 0 && !this.isJump){
+                            this.isJump = true;
+                            this.jumpScale = gameClz.defaultY/3;
+                        }
+
+                        /* ========== Jump on object ========== */
+                        if(that.actionJump == 'jump' && !this.isJump && (gameClz.mapClz.blockY || that.blockY)){
+                            this.isJump = true;
+                            this.jumpScale = gameClz.defaultY/2;
+                        }
+
+                        if(this.isJump){
+                            that.positionYTemp += 9;
+                        }
+
+                        if(this.isJump && that.positionYTemp >= this.jumpScale){
+                            this.isJump = false;
+                        }
+
+                        if(!this.isJump && that.positionYTemp > 0
+                            && (!gameClz.mapClz.blockY || that.positionYTemp < gameClz.mapClz.monster.areaYEnd)
+                            && (!that.blockY || that.positionYTemp < that.monster.areaYEnd)){
+                            that.positionYTemp -= 9;
+                        }
+
+                        /* ========== Validate block ========== */
+                        that.monster = (gameClz.monsterClz.monster||{});
+                        that.blockX = (that.monster.index||0) != 0;
+                        that.blockY = (that.positionYTemp >= that.monster.areaYStart && that.positionYTemp <= that.monster.areaYEnd);
+
+                        if((!that.blockX||!that.blockY) || that.positionYTemp == that.monster.areaYEnd){
+                            that.positionX = that.positionXTemp;
+                        }
+
+                        if(that.positionYTemp < 0){
+                            that.positionYTemp = 0;
+                        }
+                        that.positionY = that.positionYTemp;
+
+                        return that;
+                    },
+                    process:()=>{
+                        const that = gameClz.characterClz;
+                        return gameClz.render(that,that.actionMove,gameClz.defaultX+ that.positionX,gameClz.defaultY+that.positionY*(-1));
+                    }
+                },
+                /* =====================================
+                 * ========= Obstruction class =========
+                 * ===================================== */
+                obstructionClz:{
+                    context:()=>{return document.querySelector('canvas[id=obstruction-clz]').getContext('2d');},
+                    data:[[${obstruction}]],
+                    process:()=>{
+                        return gameClz.render(gameClz.obstructionClz,null,(gameClz.mapClz.positionX||0)*(-1),0);
+                    }
+                },
+                /* =================================
+                 * ========= Monster class =========
+                 * ================================= */
+                monsterClz:{
+                    context:()=>{return document.querySelector('canvas[id=monster-clz]').getContext('2d');},
+                    data:[[${monster}]],
+                    list:()=>{
+                        return gameClz.monsterClz.data.map(o=>o.source).reduce((arr,obj)=>{
+                            return arr.concat(obj);
+                        },[]);
+                    },
+                    controller:()=>{
+                        let that = gameClz.monsterClz;
+                        const checkPointX = gameClz.mapClz.positionXTemp + gameClz.characterClz.positionXTemp + gameClz.defaultX;
+                        that.monster = gameClz.monsterClz.list().filter(e=>e.block).filter(e=>{
+                            return checkPointX >= e.areaXStart && checkPointX <= e.areaXEnd;
+                        }).slice(-1)[0]||{};
+                        return that;
+                    },
+                    process:()=>{
+                      return gameClz.render(gameClz.monsterClz,null,(gameClz.mapClz.positionX||0)*(-1),0);
+                    }
+                },
+                /* =================================
+                 * =========== Item class ==========
+                 * ================================= */
+                itemClz:{
+                    context:()=>{return document.querySelector('canvas[id=item-clz]').getContext('2d');},
+                    data:[[${items}]],
+                    random() {
+                        let that = gameClz.itemClz;
+                        that.list().map(item=>{
+                            item.destX = Math.floor(Math.random() * 1800);
+                            const monster = gameClz.monsterClz.list().filter(e=>e.block).filter(e=> item.destX >= e.areaXStart && item.destX <= e.areaXEnd).slice(-1)[0]||{};
+                            if((monster.index||0) > 0){
+                                item.destY = gameClz.defaultY / 1.3;
+                                item.areaYStart = item.destY / 3.5;
+                                item.areaYEnd   = item.destY;
+                            }else{
+                                item.destY = 245;
+                                item.areaYStart = 0;
+                                item.areaYEnd   = 43;
+                            }
+                            item.areaXStart = item.destX - 50;
+                            item.areaXEnd   = item.destX + 20;
+                        });
+                        return that;
+                    },
+                    list:()=>{
+                        return gameClz.itemClz.data.map(o=>o.source).reduce((arr,obj)=>{
+                            return arr.concat(obj);
+                        },[]);
+                    },
+                    controller:(callback)=>{
+                        let that = gameClz.itemClz;
+                        const checkPointX = gameClz.mapClz.positionX + gameClz.characterClz.positionX + gameClz.defaultX;
+                        const checkPointY = gameClz.characterClz.positionY;
+                        that.list().filter(e=>
+                            checkPointX >= e.areaXStart && checkPointX <= e.areaXEnd && checkPointY >= e.areaYStart && checkPointY <= e.areaYEnd
+                        ).map(item=>{
+                            item.destX = Math.floor(Math.random() * 1800);
+                            const monster = gameClz.monsterClz.list().filter(e=>e.block).filter(e=> item.destX >= e.areaXStart && item.destX <= e.areaXEnd).slice(-1)[0]||{};
+                            if((monster.index||0) > 0){
+                                item.destY = gameClz.defaultY / 1.3;
+                                item.areaYStart = item.destY / 3.5;
+                                item.areaYEnd   = item.destY;
+                            }else{
+                                item.destY = 245;
+                                item.areaYStart = 0;
+                                item.areaYEnd   = 43;
+                            }
+                            item.areaXStart = item.destX - 50;
+                            item.areaXEnd   = item.destX + 20;
+                            callback.call(this);
+                        });
+                        return that;
+                    },
+                    process:()=>{
+                        return gameClz.render(gameClz.itemClz,null,(gameClz.mapClz.positionX||0) * (-1),0);
+                    }
+                }
+            };
+
+        </script>
+    </head>
+    <body class="container-fluid bg-light" style="font-family : 'Bai Jamjuree'!important;">
+        <div class="p-2">
+            <div class="position-relative d-flex justify-content-center mb-1" style="height: 350px;">
+                <canvas id="map-clz"         width="1000" height="350" class="position-absolute border border-dark shadow shadow-sm" style="z-index: 0;"></canvas>
+                <canvas id="obstruction-clz" width="1000" height="350" class="position-absolute" style="z-index: 1;"></canvas>
+                <canvas id="monster-clz"     width="1000" height="350" class="position-absolute" style="z-index: 2;"></canvas>
+                <canvas id="item-clz"        width="1000" height="350" class="position-absolute" style="z-index: 2;"></canvas>
+                <canvas id="character-clz"   width="1000" height="350" class="position-absolute" style="z-index: 3;"></canvas>
+                <div class="position-absolute" style="width:1000px;height:420px;z-index: 4;">
+                    <div class="h3 text-center">SCORE <span class="score-clz">0</span></div>
+                    <div style="right:10px;bottom:70px" class="position-absolute h5 text-map-position">-</div>
+                    <div style="left:10px; bottom:70px" class="position-absolute h5 text-key">none</div>
+                    <audio style="right:10px;bottom:0px" class="position-absolute sound-clz" controls loop></audio>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

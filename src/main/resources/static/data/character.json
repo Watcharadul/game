@@ -1,0 +1,35 @@
+[
+  {
+    "path":"/images/m02.png",
+    "source": [{
+      "index":1,
+      "destX":0,
+      "destY":0,
+      "motionIndex":0,
+      "none":[
+        {"index":1,"sx":0,"sy":0,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":2,"sx":0,"sy":0,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":3,"sx":0,"sy":0,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":4,"sx":64,"sy":0,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":5,"sx":64,"sy":0,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":6,"sx":64,"sy":0,"sw":65,"sh":70,"width":65,"height":70}
+      ],
+      "left":[
+        {"index":1,"sx":0,"sy":65,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":2,"sx":0,"sy":65,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":3,"sx":0,"sy":65,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":4,"sx":64,"sy":65,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":5,"sx":64,"sy":65,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":6,"sx":64,"sy":65,"sw":65,"sh":70,"width":65,"height":70}
+      ],
+      "right":[
+        {"index":1,"sx":0,"sy":126,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":2,"sx":0,"sy":126,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":3,"sx":0,"sy":126,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":4,"sx":64,"sy":126,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":5,"sx":64,"sy":126,"sw":65,"sh":70,"width":65,"height":70},
+        {"index":6,"sx":64,"sy":126,"sw":65,"sh":70,"width":65,"height":70}
+      ]
+    }]
+  }
+]

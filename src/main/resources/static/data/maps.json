@@ -1,0 +1,36 @@
+[
+  {
+    "path":"/images/bg2.png",
+    "source":[
+      {
+        "index":1,
+        "destX":0,
+        "destY":0,
+        "motionIndex":0,
+        "motion":[
+          {"index":1,"sx":0,"sy":0,"sw": 1920,"sh": 1200,"width":1000,"height":350}
+        ]
+      }
+    ],
+    "areaXStart":0,
+    "areaXEnd":1000,
+    "sound":"/sounds/s01.mp3"
+  },
+  {
+    "path":"/images/bg2.png",
+    "source":[
+      {
+        "index":1,
+        "destX":1000,
+        "destY":0,
+        "motionIndex":0,
+        "motion":[
+          {"index":1,"sx":0,"sy":0,"sw": 1920,"sh": 1200,"width":1000,"height":350}
+        ]
+      }
+    ],
+    "areaXStart":1000,
+    "areaXEnd":2000,
+    "sound":"/sounds/s02.mp3"
+  }
+]
